@@ -1,12 +1,12 @@
-# Runtime 0.2.3 — touch controls restored
+# Runtime 0.2.4 — selective draw filtering trial
 
-The user confirms the 0.2.2 right-stick camera works, but requests on-screen buttons for cover, reloading and other actions. 0.2.3 removes all control-hiding hooks, the render wrapper and ARM trampoline. The original game draws its controls, virtual joystick, highlights and button gauges. Physical input, camera, automatic boot and disabled normal launch logging are unchanged.
+Filters only gameplay GUI items 0..10 and 33 onward in layouts 19/20, joystick drawing and action-button gauges. Weapon HUD indices 11..32 and separately drawn pause controls are retained. All native visibility/enabled/alpha/highlight data and touch registration remain untouched. Physical input is unchanged from 0.2.3; B still targets the original jump/climb action, not a separate cover button. Cover remains available through its original touch area.
 
-Validation: devkitARM 16.1.0 / patched libnx32 35c0b5aeb84a5456ea1419d98fd833631bda4279 / Mesa20 / miniz 3.0.2 compile and link passed. NSO converter verified three ELF PT_LOAD segments and their hashes. hacBrewPack 3.05 with the title-version patch packaged the NSP, and hactool extraction verified Program/Control/Meta, executable identity, AArch32 NPDM/title ID, all 16 Chinese title slots, icon, NACP version 0.2.3, CNMT version 131075 and content hashes. Program RomFS contains only STATUS.txt.
+Four ARM hooks validate every prologue before patching. Assembly preserves integer, floating-point and stack arguments, then either returns without drawing or replays the original position-independent prologue and tail-calls the native body. No rendering-wide state mutation is used.
 
-The physical input code is identical to 0.2.2, whose host regression and isolated original-ARM input tests passed. No new Switch hardware run has occurred. Touch control visibility, cover/reload, physical controls and saves still require console verification.
+Validation passed: host regression suite with address/undefined sanitizers; filter policy tests proving no gameplay state writes; linked ARM trampoline execution of hidden and visible paths in Unicorn; original ARM reload/weapon dispatch and all existing restrictions; devkitARM build; NSO segment/hash comparison; NSP extraction with AArch32 NPDM, Chinese title/icon/version, CNMT 131076 and content hash checks. Toolchain remains devkitARM 16.1.0 / patched libnx32 / Mesa20 / miniz 3.0.2.
 
-NSP size: 6794456 bytes.
-NSP SHA256: `ebd1ada5f43c26a85e91ea0ad82a05c61edd3c8ec50f8daff04aa010a812c298`.
+NSP: 孤侠魅影-0.2.4.nsp, 6797016 bytes.
+SHA256: `63acf21d3ce5946de88b8febdb8feaf15af48c278ae7b3b64478d0ffa661e15c`.
 
-No original game library/resources or private keys are embedded. Only the verified installable `孤侠魅影-0.2.3.nsp` should be installed; the root build-system NSP is an ExeFS-only container.
+No Switch hardware run yet. Confirm exact visual coverage, hidden-position touch actions, physical controls, pause and weapon selection on console. No original game library/resources or private keys are embedded. Root shadowguardian_game.nsp is an ExeFS-only build intermediate and must not be installed.

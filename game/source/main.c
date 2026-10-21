@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT. Standalone AArch32 SG runtime bring-up. */
 #include "config.h"
 #include "sg.h"
+#include "sg_controls.h"
 #include "jni.h"
 #include "imports.h"
 #include "dcr_path.h"
@@ -103,6 +104,7 @@ static int load_game(void){
   sg_swp_region(begin,begin+module.phdr[i].p_memsz);break;
  }
  int n=sg_bind(&sg_api,lookup,&module,note);if(n){debugPrintf("[sg] missing native exports=%d\n",n);return -1;}
+ if(sg_controls_install(lookup,&module,so_patch_code)){stage("control drawing hooks failed");return -1;}
  stage("ELF mapped, imports resolved, native exports bound");return 0;
 }
 static int graphics(void){
