@@ -16,3 +16,5 @@ The root MIT LICENSE applies only to original wrapper work. Upstream components 
 Build-only tools include devkitPro's compiler/switch tools and Docker container toolchains. They are not shipped as executables in this release. See [REFERENCE_AUDIT.md](REFERENCE_AUDIT.md) for the materials inspected in this project. Original binary-derived ABI facts and guarded instruction values describe compatibility; no original game native library or gameplay data is included.
 
 The launcher artwork (`launcher/icon.jpg` and `frontend/assets/icon.jpg`) is derived from the user-provided Shadow Guardian image. Original game imagery and trademarks belong to their respective rights holders and are not covered by the source code license. No endorsement is implied.
+
+The experimental SG runtime uses native ABI/initialization and input-convention references from [MetalSyntax/Shadow-Guardian-vita](https://github.com/MetalSyntax/Shadow-Guardian-vita). Its MIT notice is retained in [licenses/shadowguardian-vita-MIT.txt](licenses/shadowguardian-vita-MIT.txt). See game/BUILD_REPORT.md for the exact reference revision and test limits.

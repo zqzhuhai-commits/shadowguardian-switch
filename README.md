@@ -1,6 +1,12 @@
 # Shadow Guardian / 孤侠魅影 — Switch
 
-**当前可交付：0.1.1 原生 NSP 前端预览版。尚未接通游戏启动，不是可玩移植版。**
+**当前新增：0.2.0 原生运行层启动测试 NSP，已接入原始游戏库的构造函数、JNI 和渲染循环调用。尚未通过实机首帧/游戏验证，不是已验证可玩版。**
+
+[0.2.0 实机测试步骤与日志位置](game/TESTING.zh-CN.md) · [运行层构建报告](game/BUILD_REPORT.md)
+
+0.1.1 文件准备前端保留在 `frontend/`，下文的四页界面和 NRO 说明描述该准备前端。0.2.0 使用独立 AArch32 启动测试程序，按 A 执行启动；实际素材继续使用原目录。
+
+运行层构建：安装 devkitARM、补丁版 libnx32 和 mesa32/miniz 后，执行 `bash game/build.sh PORTLIBS=/path/to/mesa32`。打包工具为 `game/tools/package_test.py`，不嵌入原始游戏文件。
 
 2026-10-21 对当前仓库和用户已提供的 PortMaster 原始资料进行了核对。当前游戏运行代码由 旧模板 改造而来，原始 Shadow Guardian 库的 JNI 入口与现有启动流程不匹配。旧版 旧模板 的实机记录不能视为本游戏的测试结果。
 
