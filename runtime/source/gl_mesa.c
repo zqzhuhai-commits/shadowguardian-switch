@@ -505,10 +505,138 @@ static void dump_texture(GLenum ifmt, GLsizei w, GLsizei h, GLsizei size, const 
   }
 }
 
+/* ATC/ATITC decompression: Switch GPU doesn't support AMD's ATC formats,
+ * so decompress to RGBA8 and upload with glTexImage2D. */
+#define GL_ATC_RGB_AMD                      0x8C91
+#define GL_ATC_RGBA_EXPLICIT_ALPHA_AMD      0x8C92
+#define GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD  0x8C93
+#ifndef GL_RGBA8
+#define GL_RGBA8                            0x8058
+#endif
+
+static void etc1_decompress_block(const uint8_t *in, uint8_t *out, int out_stride) {
+  uint32_t w = in[0] | (in[1] << 8) | (in[2] << 16) | (in[3] << 24);
+  uint32_t h = in[4] | (in[5] << 8) | (in[6] << 16) | (in[7] << 24);
+  int flip = (h >> 31) & 1;
+  int diff = (h >> 30) & 1;
+  int t1 = (h >> 27) & 7;
+  int t2 = (h >> 24) & 7;
+
+  static const int etc_table[8][4] = {
+    {1, 2, 4, 8}, {1, 2, 4, 8}, {1, 2, 4, 8}, {1, 2, 4, 8},
+    {4, 8, 16, 32}, {4, 8, 16, 32}, {4, 8, 16, 32}, {4, 8, 16, 32}
+  };
+
+  int r1, g1, b1, r2, g2, b2;
+  if (diff) {
+    r1 = (w >> 28) & 0xf; g1 = (w >> 20) & 0xf; b1 = (w >> 12) & 0xf;
+    r2 = r1 + ((w >> 24) & 7) - ((w >> 24) & 4 ? ((w >> 24) & 4) : 0);
+    /* simpler: signed 3-bit */
+    int dr = ((w >> 24) & 7); if (dr & 4) dr -= 8;
+    int dg = ((w >> 16) & 7); if (dg & 4) dg -= 8;
+    int db = ((w >> 8) & 7); if (db & 4) db -= 8;
+    r2 = r1 + dr; g2 = g1 + dg; b2 = b1 + db;
+    r1 = (r1 << 4) | r1; g1 = (g1 << 4) | g1; b1 = (b1 << 4) | b1;
+    r2 = (r2 << 4) | r2; g2 = (g2 << 4) | g2; b2 = (b2 << 4) | b2;
+  } else {
+    r1 = (w >> 28) & 0xf; g1 = (w >> 20) & 0xf; b1 = (w >> 12) & 0xf;
+    r2 = (w >> 24) & 0xf; g2 = (w >> 16) & 0xf; b2 = (w >> 8) & 0xf;
+    r1 = (r1 << 4) | r1; g1 = (g1 << 4) | g1; b1 = (b1 << 4) | b1;
+    r2 = (r2 << 4) | r2; g2 = (g2 << 4) | g2; b2 = (b2 << 4) | b2;
+  }
+
+  for (int i = 0; i < 16; i++) {
+    int x = i & 3, y = i >> 2;
+    if (flip) { if (x >= 2) { x -= 2; y += 2; } }
+    else { if (y >= 2) { y -= 2; x += 2; } }
+    int sub = (flip) ? (y >= 2) : (x >= 2);
+    int idx = (h >> (i * 2)) & 3;
+    int d = etc_table[sub ? t2 : t1][idx];
+    int r = sub ? r2 : r1, g = sub ? g2 : g1, b = sub ? b2 : b1;
+    r += d; g += d; b += d;
+    if (r < 0) r = 0; if (r > 255) r = 255;
+    if (g < 0) g = 0; if (g > 255) g = 255;
+    if (b < 0) b = 0; if (b > 255) b = 255;
+    out[y * out_stride + x * 4 + 0] = r;
+    out[y * out_stride + x * 4 + 1] = g;
+    out[y * out_stride + x * 4 + 2] = b;
+    out[y * out_stride + x * 4 + 3] = 255;
+  }
+}
+
+static int atc_decompress(uint32_t ifmt, GLsizei w, GLsizei h, GLsizei size,
+                          const void *data, uint8_t **out) {
+  int block_size;
+  if (ifmt == GL_ATC_RGB_AMD) block_size = 8;
+  else block_size = 16;
+
+  int bw = (w + 3) / 4, bh = (h + 3) / 4;
+  *out = malloc((size_t)w * h * 4);
+  if (!*out) return -1;
+  memset(*out, 0, (size_t)w * h * 4);
+
+  const uint8_t *p = data;
+  for (int by = 0; by < bh; by++) {
+    for (int bx = 0; bx < bw; bx++) {
+      uint8_t block[16];
+      memcpy(block, p, block_size);
+      p += block_size;
+
+      uint8_t rgba[16 * 4];
+      /* RGB part is ETC1-style: last 8 bytes for RGBA formats, whole block for RGB */
+      const uint8_t *etc = (ifmt == GL_ATC_RGB_AMD) ? block : block + 8;
+      etc1_decompress_block(etc, rgba, 16);
+
+      /* Handle alpha */
+      if (ifmt == GL_ATC_RGBA_EXPLICIT_ALPHA_AMD) {
+        /* first 8 bytes: 16 4-bit alpha values */
+        for (int i = 0; i < 16; i++) {
+          int a4 = (block[i >> 1] >> ((i & 1) * 4)) & 0xf;
+          rgba[i * 4 + 3] = a4 * 17;
+        }
+      } else if (ifmt == GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD) {
+        /* 2 bytes endpoints + 6 bytes 3-bit indices */
+        int a0 = block[0], a1 = block[1];
+        for (int i = 0; i < 16; i++) {
+          int byte_idx = 2 + (i * 3) / 8;
+          int bit_off = (i * 3) % 8;
+          int idx = (block[byte_idx] >> bit_off) & 7;
+          if (bit_off > 5) idx |= (block[byte_idx + 1] << (8 - bit_off)) & ~7;
+          int a = a0 + (a1 - a0) * idx / 7;
+          rgba[i * 4 + 3] = a;
+        }
+      }
+
+      /* Copy to output */
+      for (int y = 0; y < 4; y++) {
+        int dy = by * 4 + y;
+        if (dy >= h) break;
+        for (int x = 0; x < 4; x++) {
+          int dx = bx * 4 + x;
+          if (dx >= w) break;
+          memcpy(&(*out)[(dy * w + dx) * 4], &rgba[(y * 4 + x) * 4], 4);
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static void w_glCompressedTexImage2D(GLenum t, GLint lvl, GLenum ifmt, GLsizei w, GLsizei h, GLint border,
                                      GLsizei size, const void *d) {
   if (lvl == 0)
     dump_texture(ifmt, w, h, size, d);
+  /* ATC formats: decompress to RGBA8, upload with glTexImage2D */
+  if (ifmt == GL_ATC_RGB_AMD || ifmt == GL_ATC_RGBA_EXPLICIT_ALPHA_AMD ||
+      ifmt == GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD) {
+    uint8_t *rgba = NULL;
+    if (!atc_decompress(ifmt, w, h, size, d, &rgba)) {
+      r_glTexImage2D(t, lvl, 0x8058 /* RGBA8 */, w, h, border, 0x1908 /* RGBA */,
+                     0x1401 /* UNSIGNED_BYTE */, rgba);
+      free(rgba);
+      return;
+    }
+  }
   r_glCompressedTexImage2D(t, lvl, ifmt, w, h, border, size, d);
   gl_check("glCompressedTexImage2D", ifmt, (unsigned)lvl, (unsigned)w, (unsigned)h, (unsigned)size,
            __builtin_return_address(0));
