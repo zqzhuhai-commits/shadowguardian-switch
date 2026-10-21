@@ -2,7 +2,7 @@
 """Verify boot-test NSP contents and its exact AArch32 executable segments."""
 import argparse,hashlib,json,pathlib,struct,subprocess,tempfile
 p=argparse.ArgumentParser();p.add_argument('--keyset',required=True);p.add_argument('--hactool',default='hactool');a=p.parse_args()
-root=pathlib.Path(__file__).resolve().parents[2];build=root/'build/game';package=build/'孤侠魅影-运行层启动测试-0.2.0.nsp'
+root=pathlib.Path(__file__).resolve().parents[2];build=root/'build/game';package=build/'孤侠魅影-运行层启动测试-0.2.1.nsp'
 def pfs(data):
  assert data[:4]==b'PFS0';count,sz=struct.unpack_from('<II',data,4);assert 0<count<100
  names=16+24*count;start=names+sz;out={}
@@ -42,11 +42,11 @@ with tempfile.TemporaryDirectory(prefix='sg-test-verify-') as temp:
   if (out/'romfs/control.nacp').exists():
    c=(out/'romfs/control.nacp').read_bytes()
    for j in range(16):assert c[j*0x300:].startswith('孤侠魅影\0'.encode())
-   assert c[0x3060:].startswith(b'0.2.0\0')
+   assert c[0x3060:].startswith(b'0.2.1\0')
    assert (out/'romfs/icon_AmericanEnglish.dat').read_bytes()==(root/'frontend/assets/icon.jpg').read_bytes()
    checks['control_name_version_icon']=True
   for v in (out/'section0').glob('*.cnmt'):cnmt=v.read_bytes()
- assert cnmt and struct.unpack_from('<QI',cnmt,0)==(0x0100F53447550000,131072)
+ assert cnmt and struct.unpack_from('<QI',cnmt,0)==(0x0100F53447550000,131073)
  # CNMT extended header precedes the content records.
  ext,count=struct.unpack_from('<HH',cnmt,0xe)
  for i in range(count):
@@ -54,5 +54,5 @@ with tempfile.TemporaryDirectory(prefix='sg-test-verify-') as temp:
   found=files.get(id_+'.nca');assert found and hashlib.sha256(found).digest()==hash_
  checks['cnmt_content_hashes']=True
 assert len(checks)==5
-manifest={'version':'0.2.0','title':'孤侠魅影','title_id':'0100F53447550000','architecture':'AArch32','executes_original_initialization':True,'hardware_gameplay_verified':False,'checks':checks,'file':package.name,'size':package.stat().st_size,'sha256':hashlib.sha256(package.read_bytes()).hexdigest()}
+manifest={'version':'0.2.1','title':'孤侠魅影','title_id':'0100F53447550000','architecture':'AArch32','executes_original_initialization':True,'hardware_gameplay_verified':False,'checks':checks,'file':package.name,'size':package.stat().st_size,'sha256':hashlib.sha256(package.read_bytes()).hexdigest()}
 (build/'runtime-manifest.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+'\n');print(json.dumps(manifest,indent=2,ensure_ascii=False))

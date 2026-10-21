@@ -7,6 +7,7 @@
 typedef uintptr_t (*sg_lookup)(void *module, const char *name);
 typedef void (*sg_log)(const char *message);
 typedef void *(*sg_make_string)(const char *utf8);
+typedef void *(*sg_make_class)(const char *name);
 
 /* Signatures follow MetalSyntax/Shadow-Guardian-vita's main.c. These are
  * native method signatures, not an implementation of Android's Java side. */
@@ -34,6 +35,6 @@ int sg_bind(SgApi *api, sg_lookup lookup, void *module, sg_log log);
  * working GLES context, audio, paths, resource loader and constructor setup.
  * The standalone test runtime calls this function. language is an engine
  * index; its Chinese value has NOT been established. */
-int sg_bootstrap(const SgApi *api, void *vm, void *env, sg_make_string make_string,
+int sg_bootstrap(const SgApi *api, void *vm, void *env, sg_make_string make_string, sg_make_class make_class,
                  int width, int height, int language, sg_log log);
 #endif

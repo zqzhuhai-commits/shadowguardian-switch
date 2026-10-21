@@ -2,8 +2,11 @@
 #pragma once
 #include "sg_api.h"
 #define SG_CLASS "com/gameloft/android/ANMP/GloftSGHP/ML/"
-#define SG_WIDTH 1280
-#define SG_HEIGHT 720
+#define SG_WIDTH 800
+#define SG_HEIGHT 480
+/* Native asset/UI coordinates; the default framebuffer is always 720p. */
+#define SG_OUTPUT_WIDTH 1280
+#define SG_OUTPUT_HEIGHT 720
 extern SgApi sg_api;
 void sg_input_init(void);
 int sg_input_poll(void);

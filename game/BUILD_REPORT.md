@@ -1,18 +1,27 @@
-# Runtime 0.2.0 — 2026-10-21
+# Runtime 0.2.1 — 2026-10-21
 
-The new AArch32 runtime builds from `game/source` with `Game.mk`; legacy game-specific source files are not linked. It uses the original supplied native library only at execution time, after matching its exact size and SHA256.
+The original 0.2.0 hardware log confirms 214 resolved non-GL imports, 215 completed constructors, working Mesa EGL/GLES2 initialization and the native bootstrap, 40 executed SWP exchanges, and three returned render calls. It then reports unsupported ATC uploads, null JNI method IDs, missing sprite chunks and a null sprite write at `LoadSpritesMenu+0x74` (ELF offset `0x1b40fc`). This does not establish a playable game.
 
-Build: devkitARM GCC 16.1.0, libnx32 `35c0b5aeb84a5456ea1419d98fd833631bda4279`, Mesa32 release archive (Mesa 20.1 libraries), miniz 3.0.2. The standard devkitPro ELF-to-NSO tool accepts AArch64 only, so `elf32_to_nso.py` emits an uncompressed NSO with exact ELF32 PT_LOAD segments and SHA256 hashes. Runtime's existing ExeFS packer and NPDM generator are retained.
+## Changes
 
-Reference reviewed: MetalSyntax/Shadow-Guardian-vita `043e95be90358dfb57061bbc9412f23f6d8af0ad`; native signatures/initialization order and touch action convention. Its original MIT notices are preserved in `licenses/shadowguardian-vita-MIT.txt`. No platform-specific license-service or binary patches were imported. The SG library contains legacy ARM SWP instructions (826 unconditional matches in its .text); a dedicated exception hook emulates executed SWP/SWPB via atomic exchange only within the verified module code range, with writable-range checks and preserved CPSR. Unrelated exceptions still reach the normal crash handler. This avoids modifying the original library, but exception-based atomic operations can be slow. SG ABI binding and stdio bridge reuse the user's prior M3 source.
+- Removed the incorrect main-branch ETC-style ATC decoder. The SG port GL hook now decodes RGB555/RGB565 ATC palettes (both modes), explicit nibble alpha and interpolated alpha; correct constants are 0x8c92, 0x8c93, 0x87ee. Decoder validates sizes/overflow/null input before access, clips edge blocks, handles unaligned input and uses GLES2-compatible unsized GL_RGBA uploads. Compatibility is independent of RT_GL_CHECK.
+- Native bootstrap supplies the real declaring jclass for ShadowGuardian, GLResLoader, GLUtils/Device and GameRenderer. Original disassembly shows NewGlobalRef then GetStaticMethodID on these arguments; passing NULL cached NULL methods in 0.2.0.
+- ADevice::Init's obfuscated a/b/c/d/f methods use byte arrays; unavailable phone metadata returns a NUL-terminated empty byte array instead of a String or NULL. Added Context.TELEPHONY_SERVICE and basic no-SIM telephony answers. No phone identity or service success is fabricated.
+- Resource/UI coordinates use 800x480, matching the supplied sprites_1_6 and gui_1_6 packs. EGL window is 1280x720; port GL hooks scale only default-framebuffer viewport/scissor, maintain logical query results and reapply geometry across FBO switches. Offscreen image dimensions remain unchanged. Touch maps 1280x720 coordinates back to the logical space. Fullscreen maps the original UI to 16:9 with slight stretching; original asset detail is unchanged.
+- Validate both pack chunk counts and the menu sprite chunk signature before calling native code. No crash-suppressing binary patch was applied.
+- NACP version 0.2.1; CNMT version 131073; title ID, all 16 Chinese title slots and project icon retained.
 
-Checks performed:
+## Validation
 
-- Native wrapper cross-compiles and links as ELF32 ARM. Own runtime compile warnings fixed; inherited runtime emits format warnings due to devkitARM long typedefs. Those warnings do not establish game compatibility.
-- Original ELF's 214 non-GL imports mapped (123 shims, 91 passthrough), zero missing. 65 GL imports are resolved by the runtime GL layer at execution time; their actual runtime resolution is a console acceptance item.
-- Host API test verifies bootstrap call order, all seven JNI string object arguments, renderer profile/dimensions, missing exports, invalid VM version and allocation failure gates. It mocks native functions and does not run the original game.
-- Production AudioTrack PCM converter passes 44.1kHz stereo -> 48kHz, mono duplication, reset/pause, invalid inputs and output failure tests under ASan/UBSan (LeakSanitizer disabled).
-- Production SWP hook host tests verify word/byte exchange, r8-r12 operands, flags/register preservation and opcode/Thumb/code-range/writable/alignment guards. Actual console exception delivery and performance still require validation.
-- NSP verified by extracting Program, Control and Meta NCA. Executable matches the current build; NPDM is AArch32 with the expected title ID. All 16 language title slots and shared new icon match. CNMT references and content SHA256 hashes match; packaged RomFS has only STATUS.txt. NSO segment bytes and hashes match the linked ELF.
+- Production decoder golden vectors: both palette modes, both alpha modes, selector ordering including cross-byte selectors, 3x5 edge clipping, unaligned inputs, short/null/unknown format and extreme dimensions. ASan/UBSan passed.
+- 50,000 deterministic random RGB blocks compare byte-for-byte with the actual AMD Compressonator `atiDecodeRGBBlockATITC` implementation. Both normal and black modes covered. Alpha paths have independent golden vectors; no claim of GPU-driver or console validation.
+- Production GL wrapper tests: 800x480 -> 1280x720, logical viewport queries, scissor scaling, FBO switch/reapplication, unchanged offscreen sizes, invalid dimensions, successful ATC-to-RGBA upload, malformed-input rejection and non-ATC passthrough. ASan/UBSan passed.
+- Bootstrap tests verify seven string object identities, four declaring class objects, 800x480 native dimensions, lifecycle order and missing-class failure. Existing PCM and SWP host regression tests passed under ASan/UBSan.
+- devkitARM GCC 16.1.0 / libnx32 35c0b5aeb84a5456ea1419d98fd833631bda4279 / Mesa 20 / miniz 3.0.2: ELF32 ARM cross-build and link passed. NSO segments and hashes exactly match ELF PT_LOAD contents. Inherited runtime format warnings remain; this build adds no suppression for them.
+- NSP extraction verification is performed by game/tools/verify_test.py before delivery: Program/Control/Meta, exact executable, AArch32 NPDM, title ID, all names/icon/version, CNMT content hashes, and STATUS-only RomFS.
 
-No original library/resource or private key is embedded in this package. No console test of this runtime has occurred. The user's earlier log validates the 0.1.1 frontend/file scan only. First frame, menu, gameplay, Java/audio completeness, saves, performance and lifecycle remain unverified.
+## Remaining verification
+
+0.2.1 has not been run on Switch. Menu loading, image correctness, gameplay, music, complete controls, saves, suspend/resume and stability remain open. The old unsupported-language and missing(SC,...) warnings have not been declared fixed. Resource profile behavior and JNI completeness must be confirmed from the new log; removing the texture error alone does not prove that the menu crash is gone.
+
+No original game data or private key is distributed. See licenses/shadowguardian-vita-MIT.txt and licenses/AMD-Compressonator-MIT.txt for reference notices.

@@ -15,6 +15,7 @@
 
 const JMethodDef jni_method_defs[]={{NULL,NULL,NULL,NULL}};
 const JFieldDef jni_field_defs[]={
+ {"android/content/Context","TELEPHONY_SERVICE",NULL,0,"phone"},
  {"android/os/Build","MODEL",NULL,0,"Nintendo Switch"},
  {"android/os/Build","MANUFACTURER",NULL,0,"Nintendo"},
  {"android/os/Build$VERSION","SDK_INT",NULL,10,NULL},
@@ -43,6 +44,11 @@ static FILE *resource(const char *name,long *size){
   rewind(f);return f;
  }
  debugPrintf("[jni/resource] missing %s\n",base);return NULL;
+}
+static JObj *byte_string(const char *s){
+ size_t n=strlen(s)+1;JObj *o=jni_array('B',(int)n);
+ if(o)memcpy(o->a.data,s,n);
+ return o;
 }
 static jvalue res_call(const JMethod *m,const jvalue *a){
  if(strncmp(m->sig,"(Ljava/lang/String;",19)){debugPrintf("[jni/resource] unsupported ID-based request %s%s\n",m->name,m->sig);return jv_l(NULL);}
@@ -77,10 +83,35 @@ int port_jni_invoke(JObj *self,JMethod *m,const jvalue *a,jvalue *out){
   if(!strcmp(n,"play")){sg_audio_pause(0);*out=jv_none();return 1;}
   if(!strcmp(n,"pause")||!strcmp(n,"stop")||!strcmp(n,"release")){sg_audio_pause(1);*out=jv_none();return 1;}
  }
+ /* ADevice caches obfuscated methods a/b/c/d/f as ()[B, not Strings.
+  * Their identities are verified from ADevice::Init in the original ELF.
+  * Switch has no telephony identifiers/operator/line; return an empty,
+  * NUL-terminated byte array rather than a fabricated phone identity. */
+ if(!strcmp(c,SG_CLASS "GLUtils/Device") && !strcmp(m->sig,"()[B")){
+  if(!strcmp(n,"a")||!strcmp(n,"b")||!strcmp(n,"c")||!strcmp(n,"d")){
+   *out=jv_l(byte_string(""));return 1;
+  }
+  if(!strcmp(n,"f")||!strcmp(n,"getHostName")){
+   *out=jv_l(byte_string("Nintendo Switch"));return 1;
+  }
+ }
+ if(!strcmp(c,"android/telephony/TelephonyManager")){
+  if(!strcmp(n,"getDeviceId")||!strcmp(n,"getSubscriberId")||!strcmp(n,"getLine1Number")||!strcmp(n,"getNetworkOperatorName")){
+   *out=jv_l(jni_str(""));return 1;
+  }
+  if(!strcmp(n,"getNetworkCountryIso")||!strcmp(n,"getSimCountryIso")){
+   *out=jv_l(jni_str("us"));return 1;
+  }
+  if(!strcmp(n,"getSimState")){*out=jv_i(1);return 1;} /* SIM_STATE_ABSENT */
+  if(!strcmp(n,"isNetworkRoaming")){*out=jv_z(0);return 1;}
+ }
  if(!is_sg(c) && strncmp(c,"android/content/",16) && strcmp(c,"android/app/Activity") && strcmp(c,"java/io/File"))return 0;
  if(!strcmp(c,SG_CLASS "GLResLoader") && (!strcmp(n,"getResourceLength")||!strcmp(n,"getResourceBytes")||!strcmp(n,"getResourceFull")||!strcmp(n,"getRawResource"))){*out=res_call(m,a);return 1;}
  if(!strcmp(n,"Exit") || !strcmp(n,"sendAppToBackground")){debugPrintf("[sg] original game requested exit\n");log_flush_ring();exit(0);}
  if(!strcmp(n,"getPath")||!strcmp(n,"getAbsolutePath")){*out=jv_l(jni_str("/sdcard/gameloft/games/GloftSGHP/"));return 1;}
+ if(!strcmp(n,"getSystemService") && !strcmp(m->sig,"(Ljava/lang/String;)Ljava/lang/Object;")){
+  *out=jv_l(!strcmp(jni_utf(a[0].l),"phone")?jni_singleton("android/telephony/TelephonyManager"):NULL);return 1;
+ }
  if(!strcmp(n,"getFilesDir")){*out=jv_l(jni_singleton("java/io/File"));return 1;}
  if(!strcmp(n,"getPackageName")){*out=jv_l(jni_str(PORT_PACKAGE));return 1;}
  if(!strcmp(n,"getContext")||!strcmp(n,"getInstance")){*out=jv_l(jni_singleton(SG_CLASS "ShadowGuardian"));return 1;}

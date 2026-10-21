@@ -1,70 +1,64 @@
-# Shadow Guardian / 孤侠魅影 — Switch
+# 孤侠魅影 / Shadow Guardian — Nintendo Switch
 
-**当前新增：0.2.0 原生运行层启动测试 NSP，已接入原始游戏库的构造函数、JNI 和渲染循环调用。尚未通过实机首帧/游戏验证，不是已验证可玩版。**
+当前版本：**0.2.1 运行层修复测试版**。游戏输出窗口和主画布视口为 **1280×720 全屏**，原始资源与触摸逻辑使用 800×480 坐标，通过兼容层映射到整个屏幕。现有素材保留原始清晰度，UI 会随全屏映射略作拉伸。
 
-[0.2.0 实机测试步骤与日志位置](game/TESTING.zh-CN.md) · [运行层构建报告](game/BUILD_REPORT.md)
+**本版已完成编译和主机测试，仍需 Switch 实机验证。尚未确认可进入菜单或关卡，不是正式可玩版。**
 
-0.1.1 文件准备前端保留在 `frontend/`，下文的四页界面和 NRO 说明描述该准备前端。0.2.0 使用独立 AArch32 启动测试程序，按 A 执行启动；实际素材继续使用原目录。
+[安装与实机测试](game/TESTING.zh-CN.md) · [构建与验证报告](game/BUILD_REPORT.md)
 
-运行层构建：安装 devkitARM、补丁版 libnx32 和 mesa32/miniz 后，执行 `bash game/build.sh PORTLIBS=/path/to/mesa32`。打包工具为 `game/tools/package_test.py`，不嵌入原始游戏文件。
+## 0.2.1 更新
 
-2026-10-21 对当前仓库和用户已提供的 PortMaster 原始资料进行了核对。当前游戏运行代码由 旧模板 改造而来，原始 Shadow Guardian 库的 JNI 入口与现有启动流程不匹配。旧版 旧模板 的实机记录不能视为本游戏的测试结果。
+- 正确解码 ATC RGB、显式 Alpha、插值 Alpha 三种纹理格式，再上传 RGBA 像素；修正此前主分支的格式常量、颜色算法、Alpha 解码及边界问题。
+- 纹理兼容挂接在游戏 GL 接口中，关闭 GL 调试检查时也生效。
+- 为原生初始化传入实际的 Java 类对象，修正资源加载器、设备接口缓存空方法 ID 的原因。
+- 补齐原库 `GLUtils/Device` 的字节数组接口与 `TELEPHONY_SERVICE`；Switch 不提供手机 IMEI、SIM 卡或手机号。
+- 使用与 `sprites_1_6 / gui_1_6` 数据对应的 800×480 资源坐标。默认帧缓冲的视口与裁剪映射到 1280×720，离屏帧缓冲保持自身尺寸；触摸坐标反向映射。
+- 启动前检查两个资源包的块数量及菜单精灵第 27 块签名，缺失或不匹配时停止启动并记录日志。
+- 保留名称“孤侠魅影”和统一项目图标；NSP 的全部 16 个语言名称槽一致。
 
-## 前端功能
+0.2.0 实机日志已确认：原始库哈希匹配、214 个非 GL 导入全部解析、215 个构造函数完成、EGL/GLES2 和原生初始化完成，前三次渲染返回。随后出现 ATC 格式错误、JNI 空方法 ID，以及 `LoadSpritesMenu+0x74` 的空指针访问。0.2.1 针对这些线索修复兼容层；**是否消除菜单崩溃须由新日志确认**。原日志中的语言警告、`missing(SC,...)` 文本警告也需继续核对。
 
-- 原生 AArch64 / libnx，1280 × 720 深色金色界面。
-- 概览、游戏文件、安装指南、诊断四个页面。
-- 手柄 L/R 或方向键切页，A 查看文件，B 返回首页，Y 重扫，X 导出日志，+ 退出。
-- 触屏选择侧栏页面；文件检查支持原始 PortMaster 素材。
-- 按 SHA256 识别已提供的 `libshadowguardian.so`，统计素材文件与体积。
-- 识别 `gameloft/games/GloftSGHP` 和 `Gameloft/Games/GloftSGHP` 两种目录大小写。
-- 扫描不修改 APK、游戏库、素材或存档；X 仅写入 `frontend.log`。
+## 安装
 
-文件存在、库哈希匹配和素材统计，均不代表游戏已经可运行。前端不启动游戏，也不执行游戏原生代码。
+1. 安装 `孤侠魅影-运行层启动测试-0.2.1.nsp`，Title ID 为 `0100F53447550000`，更新已有同名应用。
+2. 保留 SD 卡上的原始资料：
 
-## 安装与资料
-
-安装 `Shadow-Guardian-Frontend-0.1.1.nsp` 后可从 HOME 图标打开前端；也提供 NRO 以便从 Homebrew Menu 打开。无需 Sphaira。实际安装、显示、输入和休眠行为仍需 Switch 真机验证。
-
-将你自己的原始资料放在 `sd:/switch/shadowguardian_nx/`：
-
-- `libshadowguardian.so`，也支持 `lib/armeabi-v7a/libshadowguardian.so`。
-- `gameloft/games/GloftSGHP/`，也接受原包的 `Gameloft/Games/GloftSGHP/`。
-
-现有 PortMaster ZIP 可用 Python 3 的标准库整理，无需重新提供 APK：
-
-```sh
-python3 frontend/tools/prepare_data.py ShadowGuardian-Original-PortMaster.zip --output prepared/shadowguardian_nx --dry-run
-python3 frontend/tools/prepare_data.py ShadowGuardian-Original-PortMaster.zip --output prepared/shadowguardian_nx
+```text
+sd:/switch/shadowguardian_nx/libshadowguardian.so
+sd:/switch/shadowguardian_nx/gameloft/games/GloftSGHP/
 ```
 
-准备脚本只接受已审计库，复制游戏库和素材到空目录；不会复制 Linux 程序、驱动、存档或日志。整理文件夹不是游戏运行器。若已有安装，请先备份再合并。
+也支持 `lib/armeabi-v7a/libshadowguardian.so` 和原包的 `Gameloft/Games/GloftSGHP/` 大小写。已通过文件检查的原始资料无需重复准备。
 
-## 构建前端
+原始库 SHA256：`ad17a127ae438e829a23e372ddd8100f82fe6a311b0ad295b8cead69d5805ef9`。
 
-需要 devkitA64、libnx、switch-tools、Python 3，打包 NSP 另需 hacBrewPack 和私有本地 keyset。构建前端不需要原始游戏文件，也不需要 32 位运行层。
+3. 从 HOME 打开“孤侠魅影”，按 **A** 尝试启动。测试中 **+ / B** 发送返回键，**+ 和 − 同时按下**结束测试。优先检查触屏、菜单和声音，再测试关卡。
+4. 回传 `sd:/switch/shadowguardian_nx/` 内的 `debug.log`、`debug.prev.log`、`crash.log`（存在的文件），并说明停止位置。旧的 `frontend.log` 只记录文件扫描。
+
+## 构建
+
+运行层为 AArch32，入口是 `Game.mk` 和 `game/source/`。根目录旧 `Makefile/source` 不用于当前运行层。准备前端在 `frontend/`，是独立 AArch64 NRO；它负责文件检查，不运行游戏。
+
+依赖：devkitARM、补丁版 [libnx32](https://github.com/aks796/libnx32)、[Mesa32](https://github.com/aks796/mesa32) 的 Mesa 20 库，以及 miniz 3.0.2。
 
 ```sh
 export DEVKITPRO=/path/to/devkitpro
-bash frontend/build.sh
-python3 frontend/tools/package_nsp.py --keyset /private/prod.keys --tool /path/to/hacbrewpack --out frontend/build
-python3 frontend/tools/verify.py --keyset /private/prod.keys --hactool /path/to/hactool
-python3 frontend/tools/test_scan.py
+bash game/tests/run_host.sh
+bash game/build.sh PORTLIBS=/path/to/mesa32
+python3 game/tools/package_test.py --keyset /private/prod.keys --tool /path/to/hacbrewpack
+python3 game/tools/verify_test.py --keyset /private/prod.keys --hactool /path/to/hactool
 ```
 
-宿主文件检测测试需要 C 编译器和 OpenSSL 开发库；Switch 使用 libnx 的 SHA256，不依赖 OpenSSL。字体和图标已生成并提交，仅重新生成字体时需要 Pillow。前端当前使用英文 ASCII 文本。
+打包工具需要支持 `HACBREWPACK_TITLE_VERSION` 环境变量的 hacBrewPack，0.2.1 使用 CNMT 版本 `131073`。根目录编译生成的 `shadowguardian_game.nsp` 仅是 ExeFS 容器；可安装的完整测试 NSP 在 `build/game/`。
 
-`frontend/build.sh` 生成的是前端 NRO 和原生可执行程序；`package_nsp.py` 生成含 Program、Control、Meta NCA 的实际可安装 NSP。不要把根目录 AArch32 运行层的 ExeFS 容器当成此安装包。
+主机测试验证 JNI 初始化参数、ATC 解码、720p 视口/离屏状态、音频转换与 SWP 指令兼容边界，不能替代实机游戏验证。音乐、完整按键、存档、休眠与长时间稳定性仍待验收。
 
-## 研究与验证
+## 资料与许可
 
-- [本次移植研究](docs/PORT_AUDIT.zh-CN.md)
-- [原始库接口和素材审计](docs/ORIGINAL_LIBRARY_AUDIT.json)
-- [本次构建报告](docs/FRONTEND_BUILD.md)
-- [上游 旧模板 说明存档](docs/UPSTREAM_旧模板_README.md)
+- [原始库与资源审计](docs/ORIGINAL_LIBRARY_AUDIT.json)
+- [早期移植审计](docs/PORT_AUDIT.zh-CN.md)
+- [0.1.1 文件准备前端](frontend/)
+- [参考移植](https://github.com/MetalSyntax/Shadow-Guardian-vita)
+- [AMD ATC 参考实现](https://github.com/GPUOpen-Tools/compressonator)
 
-根目录旧 `BUILD_REPORT.md`、`VALIDATION.md`、`TECHNICAL_NOTES.md` 等保留为上游历史参考，不是 Shadow Guardian 的验收证据。
-
-## 许可与致谢
-
-保留原始 旧模板 / android32 / libnx 等贡献者署名和许可证，见 `LICENSE`、`THIRD_PARTY.md`、`licenses/`。前端新代码使用 MIT；DejaVu 字体许可见 `frontend/assets/FONT-LICENSE.txt`。图标基于用户提供的《孤侠魅影》图片制作。交付包不含原始游戏库、游戏素材或任何私有密钥。
+第三方许可保留在 `licenses/` 和相应源码目录。仓库和测试 NSP 不包含原始游戏库、游戏资源、APK 或私有密钥。

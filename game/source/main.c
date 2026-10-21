@@ -39,6 +39,7 @@ static void stage(const char *s){debugPrintf("[sg/stage] %s\n",s);sg_jni_check(s
 static uintptr_t lookup(void *m,const char *s){return so_try_find_addr_rx(m,s);}
 static void note(const char *s){stage(s);}
 static void *make_string(const char *s){return jni_str(s);}
+static void *make_class(const char *s){JClass *c=jni_class(s);return c?c->obj:NULL;}
 static int verified(const char *path){
  FILE *f=fopen(path,"rb");if(!f)return 0;
  Sha256Context c;sha256ContextCreate(&c);unsigned char b[16384],h[32];size_t n,total=0;
@@ -60,7 +61,33 @@ const char *port_path_fixup(const char *real,char *out,size_t cap){
  }
  return real;
 }
+static int required_assets(void){
+ const char *dirs[]={"gameloft/games/GloftSGHP","Gameloft/Games/GloftSGHP"};
+ const char *names[]={"sprites_1_6","gui_1_6"};
+ for(unsigned i=0;i<2;i++){
+  char path[768];FILE *f=NULL;
+  for(unsigned j=0;j<2 && !f;j++){
+   snprintf(path,sizeof path,"%s/%s/%s",dcr_game_root(),dirs[j],names[i]);f=fopen(path,"rb");
+  }
+  if(!f){debugPrintf("[sg/assets] missing %s; restore original data before starting\n",names[i]);return -1;}
+  unsigned char header[2],offset[4],magic[2];
+  if(fread(header,1,2,f)!=2){fclose(f);return -1;}
+  unsigned count=header[0]|(unsigned)header[1]<<8;
+  int valid=count==(i?32u:136u);
+  if(!i && valid){
+   valid=!fseek(f,2+27*4,SEEK_SET)&&fread(offset,1,4,f)==4;
+   if(valid){
+    uint32_t start=offset[0]|(uint32_t)offset[1]<<8|(uint32_t)offset[2]<<16|(uint32_t)offset[3]<<24;
+    valid=!fseek(f,(long)(2+count*4+start),SEEK_SET)&&fread(magic,1,2,f)==2&&magic[0]==0xdf&&magic[1]==5;
+   }
+  }
+  fclose(f);debugPrintf("[sg/assets] %s chunks=%u menu signature=%s\n",names[i],count,valid?"ok":"INVALID");
+  if(!valid)return -1;
+ }
+ return 0;
+}
 static int load_game(void){
+ stage("validate original menu resource packs");if(required_assets())return -1;
  char path[768];snprintf(path,sizeof path,"%s/libshadowguardian.so",dcr_game_root());
  if(!verified(path)){snprintf(path,sizeof path,"%s/lib/armeabi-v7a/libshadowguardian.so",dcr_game_root());
   if(!verified(path)){stage("unsupported or missing original library");return -1;}}
@@ -79,7 +106,7 @@ static int load_game(void){
  stage("ELF mapped, imports resolved, native exports bound");return 0;
 }
 static int graphics(void){
- stage("create EGL/GLES2 window");dcr_window_set_size(SG_WIDTH,SG_HEIGHT);
+ stage("create EGL/GLES2 window");dcr_window_set_size(SG_OUTPUT_WIDTH,SG_OUTPUT_HEIGHT);
  display=b_eglGetDisplay(EGL_DEFAULT_DISPLAY);EGLint maj=0,min=0;
  if(!b_eglInitialize(display,&maj,&min))return -1;
  EGLint attrs[]={EGL_SURFACE_TYPE,EGL_WINDOW_BIT,EGL_RENDERABLE_TYPE,EGL_OPENGL_ES2_BIT,
@@ -103,8 +130,9 @@ static int run_game(void){
  extern int g_so_trace_ctors;g_so_trace_ctors=1;
  stage("execute native constructors");so_execute_init_array(&module);so_free_temp(&module);
  if(graphics()){stage("EGL creation/presentation failed");return -1;}
+ debugPrintf("[sg/display] output=%dx%d fullscreen; native asset coordinates=%dx%d\n",SG_OUTPUT_WIDTH,SG_OUTPUT_HEIGHT,SG_WIDTH,SG_HEIGHT);
  stage("JNI/native bootstrap begins");
- int rc=sg_bootstrap(&sg_api,g_jni_vm,g_jni_env,make_string,SG_WIDTH,SG_HEIGHT,0,note);
+ int rc=sg_bootstrap(&sg_api,g_jni_vm,g_jni_env,make_string,make_class,SG_WIDTH,SG_HEIGHT,0,note);
  debugPrintf("[sg] bootstrap result=%d\n",rc);if(rc)return -1;
  debugPrintf("[sg/swp] atomic exchanges emulated during init=%u\n",sg_swp_count());
  stage("native bootstrap returned; entering frame loop");sg_input_init();running=1;
@@ -125,7 +153,7 @@ static int run_game(void){
 int main(int argc,char **argv){
  (void)argc;(void)argv;const char *root=dcr_game_root();mkdir(root,0777);
  log_init(root);log_console_open();log_console_show_text();
- debugPrintf("Shadow Guardian runtime 0.2.0 / BOOT TEST / gameplay unverified\n");
+ debugPrintf("Shadow Guardian runtime 0.2.1 / BOOT TEST / gameplay unverified\n");
  dcr_report_boot();if(chdir(root))debugPrintf("[sg] root chdir failed\n");
  dcr_config_load();dcr_time_init();dcr_path_prepare_dirs();
  debugPrintf("A: attempt original game initialization. PLUS: exit.\n");log_flush_ring();
