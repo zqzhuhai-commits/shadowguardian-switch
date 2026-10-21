@@ -26,6 +26,9 @@ typedef struct {
     void (*touch)(void *, void *, int, int, int, int);
     void (*key_down)(void *, void *, int);
     void (*key_up)(void *, void *, int);
+    /* Verified engine action-phase flag: false while gameplay is suspended. */
+    void **game_instance;
+    int (*is_in_action_phase)(void *);
 } SgApi;
 
 /* Returns missing export count. Does not execute any game instructions. */

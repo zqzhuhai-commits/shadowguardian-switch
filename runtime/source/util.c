@@ -27,6 +27,11 @@
 #include "rt_settings.h"
 #include "util.h"
 
+/* Ports can omit normal launch logs while retaining the crash handler. */
+#ifndef RT_LOG_ENABLED
+#define RT_LOG_ENABLED 1
+#endif
+
 /* RT_LOG_FSYNC: 1 commits debug.log to the card (fsync) at every flush of the
  * ring and every 16 lines while booting, so a log survives the game being
  * closed or killed; 0 only fflush()es. Every port: 1 (sonic's; the others
@@ -65,6 +70,7 @@ static void sync_file(void) {
 }
 
 void log_init(const char *root) {
+  if (!RT_LOG_ENABLED) return;
   char path[512], prev[512];
   snprintf(path, sizeof path, "%s/debug.log", root);
   snprintf(prev, sizeof prev, "%s/debug.prev.log", root);
@@ -138,6 +144,7 @@ void log_flush_ring(void) {
 void (*dcr_log_tap)(const char *line);
 
 void debugPrintf(const char *fmt, ...) {
+  if (!RT_LOG_ENABLED) return;
   char buf[1536]; /* Asphalt 8's profiler lines run to ~1400 */
   va_list ap;
   va_start(ap, fmt);
@@ -194,6 +201,7 @@ void log_console_open(void) {
  * has used is the sequence every hardware run has had (a never-used window
  * read back black in the emulator's GL self-test). */
 void log_console_show_text(void) {
+  if (!RT_LOG_ENABLED) return;
   mutexLock(&g_log_lock);
   if (g_console && !g_console_text) {
     g_console_text = 1;

@@ -11,6 +11,8 @@ extern SgApi sg_api;
 void sg_input_init(void);
 int sg_input_poll(void);
 void sg_input_release(void);
+int sg_input_cursor(int *x,int *y);
+void sg_cursor_draw(void);
 void sg_audio_close(void);
 void sg_audio_pause(int pause);
 int sg_audio_write(const unsigned char *bytes, unsigned size, unsigned rate, int channels);
