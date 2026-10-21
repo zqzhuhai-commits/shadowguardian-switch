@@ -1,0 +1,3 @@
+# Optional: executes isolated input branches of the user-supplied ELF only.
+pyelftools==0.33
+unicorn==2.1.4

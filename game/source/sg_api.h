@@ -26,8 +26,9 @@ typedef struct {
     void (*touch)(void *, void *, int, int, int, int);
     void (*key_down)(void *, void *, int);
     void (*key_up)(void *, void *, int);
-    /* Engine-owned gameplay GUI state; item opacity must not change this. */
-    const unsigned char *gui_visible;
+    /* Verified engine action-phase flag: false while gameplay is suspended. */
+    void **game_instance;
+    int (*is_in_action_phase)(void *);
 } SgApi;
 
 /* Returns missing export count. Does not execute any game instructions. */

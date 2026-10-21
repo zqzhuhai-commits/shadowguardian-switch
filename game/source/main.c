@@ -142,6 +142,7 @@ static int run_game(void){
   if(sg_input_poll())break;
   int result=sg_api.render();
   if(frames<3)debugPrintf("[sg/frame] nativeRender returned %d frame=%u\n",result,frames);
+  sg_cursor_draw();
   if(!b_eglSwapBuffers(display,surface)){stage("EGL swap failed");break;}
   if(++frames%300==0){debugPrintf("[sg/frame] presented=%u JNI_objects=%d SWP=%u\n",frames,jni_live_objects(),sg_swp_count());log_flush_ring();}
  }

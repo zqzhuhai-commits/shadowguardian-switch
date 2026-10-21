@@ -12,19 +12,14 @@ static PadState pad;
 static HidTouchScreenState previous;
 static int joy,joyx,joyy,camera,camx,camy,aim,fire,action,grab;
 static float lookx,looky;
-static int cx=SG_WIDTH/2,cy=SG_HEIGHT/2,click,back,swipe,context=-1;
-static u64 last_keys,blocked,nav;
-static const u64 directions[]={HidNpadButton_Up,HidNpadButton_Down,HidNpadButton_Left,HidNpadButton_Right};
+static int cx=SG_WIDTH/2,cy=SG_HEIGHT/2,click,back,swipe,weapon_mode,context=-1;
+static u64 last_keys,blocked;
 static void touch(int type,int x,int y,int id){sg_api.touch(g_jni_env,NULL,type,x,y,id);}
 static void key(int down,int code){if(down)sg_api.key_down(g_jni_env,NULL,code);else sg_api.key_up(g_jni_env,NULL,code);}
 static void held(u64 keys,u64 mask,int x,int y,int id,int *old){
  int active=(keys&mask)!=0;
  if(active!=*old)touch(active?1:0,x,y,id);
  *old=active;
-}
-static void navigation(u64 keys){
- for(int i=0;i<4;i++)if((keys&directions[i])!=(nav&directions[i]))key((keys&directions[i])!=0,19+i);
- nav=keys;
 }
 static int axis(int v){
  int a=abs(v);if(a<=6000)return 0;
@@ -50,7 +45,7 @@ static void look(HidAnalogStickState r){
 }
 void sg_input_init(void){
  padConfigureInput(1,HidNpadStyleSet_NpadStandard);padInitializeDefault(&pad);hidInitializeTouchScreen();
- memset(&previous,0,sizeof previous);context=-1;last_keys=blocked=nav=0;
+ memset(&previous,0,sizeof previous);context=-1;last_keys=blocked=0;
 }
 void sg_input_release(void){
  if(joy)touch(0,joyx,joyy,50);
@@ -61,12 +56,12 @@ void sg_input_release(void){
  held(0,HidNpadButton_ZR,625,451,60,&fire);
  held(0,HidNpadButton_B,725,330,62,&action);
  held(0,HidNpadButton_A,725,152,63,&grab);
- if(swipe)touch(0,swipe==1?688:788,30,64);
- swipe=0;
+ if(swipe)touch(0,weapon_mode==1&&swipe==2?788:688,30,64);
+ swipe=weapon_mode=0;
  if(click)touch(0,cx,cy,55);
  click=0;
  if(back)key(0,4);
- back=0;navigation(0);
+ back=0;
  for(int i=0;i<previous.count;i++)touch(0,previous.touches[i].x*SG_WIDTH/1280,previous.touches[i].y*SG_HEIGHT/720,(int)previous.touches[i].finger_id);
  previous.count=0;
  blocked|=last_keys;
@@ -74,7 +69,7 @@ void sg_input_release(void){
 int sg_input_poll(void){
  padUpdate(&pad);u64 raw=padGetButtons(&pad);
  if((raw&HidNpadButton_Plus)&&(raw&HidNpadButton_Minus))return 1;
- int game=sg_api.gui_visible&&*sg_api.gui_visible;
+ int game=sg_api.game_instance&&*sg_api.game_instance&&sg_api.is_in_action_phase(*sg_api.game_instance);
  if(context>=0&&game!=context)sg_input_release();
  context=game;blocked&=raw;
  u64 keys=raw&~blocked,down=keys&~last_keys;
@@ -99,15 +94,21 @@ int sg_input_poll(void){
   held(keys,HidNpadButton_ZR|HidNpadButton_R,625,451,60,&fire);
   held(keys,HidNpadButton_B,725,330,62,&action);
   held(keys,HidNpadButton_A,725,152,63,&grab);
-  /* Separate render ticks preserve the gesture even if nativeOnTouch stores
-   * only the latest state. X requests next weapon, once per press. */
-  if(swipe==1){touch(2,788,30,64);swipe=2;}
-  else if(swipe==2){touch(0,788,30,64);swipe=0;}
-  else if(down&HidNpadButton_X){touch(1,688,30,64);swipe=1;}
+  /* The engine normalizes x by 800/480. At x=688 a stationary
+   * release is 412.8: inside the native 365..450 reload interval.
+   * A +100-pixel swipe exceeds its 30-unit next-weapon threshold.
+   * Both pass through PlayerCtrl::Update and Actor::OnReload unchanged. */
+  if(swipe==1&&weapon_mode==1){touch(2,788,30,64);swipe=2;}
+  else if(swipe){touch(0,weapon_mode==1?788:688,30,64);swipe=weapon_mode=0;}
+  else if(down&(HidNpadButton_X|HidNpadButton_Y)){
+   weapon_mode=(down&HidNpadButton_Y)?2:1;
+   touch(1,688,30,64);swipe=1;
+  }
  }else{
-  navigation(keys&(HidNpadButton_Up|HidNpadButton_Down|HidNpadButton_Left|HidNpadButton_Right));
-  /* Retain the previous menu touch cursor until menu hit-testing can be
-   * checked against the original library. */
+  /* Native Android DPAD keys are ignored by Game::OnKeyPressed.
+   * Drive a visible touch cursor; A activates the original menu controls. */
+  if(abs(l.x)>6000)cx+=l.x/5000;
+  if(abs(l.y)>6000)cy-=l.y/5000;
   if(abs(r.x)>6000)cx+=r.x/5000;
   if(abs(r.y)>6000)cy-=r.y/5000;
   if(keys&HidNpadButton_Left)cx-=8;
@@ -132,3 +133,5 @@ int sg_input_poll(void){
  }
  previous=now;return 0;
 }
+
+int sg_input_cursor(int *x,int *y){*x=cx;*y=cy;return context==0;}

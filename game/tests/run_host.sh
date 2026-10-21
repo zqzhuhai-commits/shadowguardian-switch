@@ -18,4 +18,6 @@ build/host/audio_test
 build/host/swp_test
 "$cc" "${common[@]}" "${sanitize[@]}" game/source/sg_input.c game/tests/input_test.c -o build/host/input_test
 build/host/input_test
+"$cc" "${common[@]}" "${sanitize[@]}" game/source/sg_cursor.c game/tests/cursor_test.c -o build/host/cursor_test
+build/host/cursor_test
 python3 runtime/tools/gen_imports.py --port game --check
