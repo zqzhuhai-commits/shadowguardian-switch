@@ -1,5 +1,5 @@
-﻿/* TASM2 Java service bridge. Generic MD5, identity, Bundle and preferences
- * adapted from aks796/a8retry_nx (MIT); TASM2 bindings verified from 1.2.8d. */
+/* legacy wrapper Java service bridge. Generic MD5, identity, Bundle and preferences
+ * adapted from aks796/a8retry_nx (MIT); legacy wrapper bindings verified from 1.2.8d. */
 #include "config.h"
 #include "dcr_manifest.h"
 #include "dcr_path.h"

@@ -1,6 +1,6 @@
 /* Installer synchronization shim for Shadow Guardian.
  *
- * The upstream TASM2 port patched four hard-coded worker-array slots inside
+ * The upstream legacy wrapper port patched four hard-coded worker-array slots inside
  * libtasm2.so. Shadow Guardian (2010) predates that installer architecture;
  * the ArmHF PortMaster loader ran the .so without any such patch.  No-op
  * until libshadowguardian.so is reverse-engineered.

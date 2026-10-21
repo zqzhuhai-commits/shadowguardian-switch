@@ -2,7 +2,7 @@
 #ifndef PORT_CONFIG_H
 #define PORT_CONFIG_H
 
-#define PORT_TITLE "Shadow Guardian"
+#define PORT_TITLE "孤侠魅影"
 #define PORT_NAME "shadowguardian_nx"
 #define PORT_PACKAGE "com.gameloft.android.GloftSGHP"
 #define PORT_APK_DEFAULT_NAME "Shadow-Guardian.apk"

@@ -1,5 +1,5 @@
 /* Port override of android32 opensles.c (MIT; upstream notice retained below).
- * TASM2 additions: dry-queue recovery, host-owned playback copy, and verified
+ * legacy wrapper additions: dry-queue recovery, host-owned playback copy, and verified
  * owned-mutex handoff during synchronous completion-callback teardown.
  */
 /* opensles.c -- OpenSL ES for the game's sound, played through audout.

@@ -1,4 +1,4 @@
-﻿/* TASM2 1.2.8d lifecycle, with checked pending UserData checkpoint flush. */
+/* legacy wrapper 1.2.8d lifecycle, with checked pending UserData checkpoint flush. */
 #include "config.h"
 #include "dcr_boost.h"
 #include "dcr_setup.h"
@@ -82,7 +82,7 @@ int port_load(const char *apk) {
   log_console_progress("Loading game files...", 0);
   tasm2_storage_init(apk);
   /* Shadow Guardian ships a single native library; the generator.so used by
-   * later Gameloft titles (TASM2) is not present. */
+   * later Gameloft titles (legacy wrapper) is not present. */
   log_console_progress("Loading game engine...", 0);
   load_module(&tasm2_game, "libshadowguardian.so");
   return 0;
@@ -106,7 +106,7 @@ void tasm2_setup_paths(void) {
   jni_release(r);
   jni_release(s);
   jni_release(c);
-  debugPrintf("[save] persistent internal files: sd:/switch/tasm2_nx/data/files\n");
+  debugPrintf("[save] persistent internal files: sd:/switch/shadowguardian_nx/data/files\n");
 }
 int tasm2_context(int index) {
   if (!display)

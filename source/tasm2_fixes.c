@@ -1,6 +1,6 @@
 /* Runtime patches for Shadow Guardian NX.
  *
- * The upstream TASM2 port applied binary-level patches at hard-coded offsets
+ * The upstream legacy wrapper port applied binary-level patches at hard-coded offsets
  * inside libtasm2.so. Shadow Guardian uses a different ELF layout and those
  * offsets are not known yet. All binary patches are skipped; only runtime
  * popup polling is wired up.

@@ -2,3 +2,7 @@
 *.elf
 *.nro
 build/
+
+release/
+__pycache__/
+*.pyc

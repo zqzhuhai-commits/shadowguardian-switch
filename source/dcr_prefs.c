@@ -1,5 +1,5 @@
 /* Android SharedPreferences XML store, adapted from aks796/a8retry_nx (MIT).
- * TASM2 progress uses native save files as well as these Java preferences.
+ * legacy wrapper progress uses native save files as well as these Java preferences.
  * A retained backup protects FAT rename replacement and is recovered on load.
  */
 #include <stdio.h>

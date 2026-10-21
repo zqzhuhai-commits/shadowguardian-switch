@@ -1,4 +1,4 @@
-MIT License — Original TASM2 Nintendo Switch wrapper code only
+MIT License — Original Nintendo Switch wrapper code only
 
 Copyright (c) 2026 Bora Eskicioğlu / BESK Entertainment
 
@@ -25,7 +25,4 @@ This license does not relicense android32, adapted aks796 code, libnx, Mesa,
 libdrm, miniz, jsmn, compiler runtimes or any other third-party component.
 Their notices are preserved in licenses/ and THIRD_PARTY.md.
 
-No rights to The Amazing Spider-Man 2, its APK/native libraries, expansions,
-assets, Marvel characters or trademarks are granted. Players supply their own
-legally obtained game files. This independent wrapper is not affiliated with
-Gameloft, Marvel, Sony or Nintendo.
+No rights to Shadow Guardian, its APK/native libraries, game assets or trademarks are granted. Players supply their own legally obtained game files. This independent wrapper is not affiliated with Gameloft or Nintendo.

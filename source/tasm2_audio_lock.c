@@ -1,4 +1,4 @@
-/* Hand off only the verified TASM2 mixer mutex owned by the destroying thread.
+/* Hand off only the verified legacy wrapper mixer mutex owned by the destroying thread.
  * Native callback +0xbb7c98 takes *(context+4) before inspecting/refilling its queue.
  */
 #include "bionic_pthread.h"

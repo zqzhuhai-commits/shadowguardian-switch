@@ -1,6 +1,6 @@
 # Third-party code and notices
 
-The root MIT LICENSE applies only to original tasm2_nx work. Upstream components keep their own copyright and licenses. Preserve this file and `licenses/` alongside binary/source distributions.
+The root MIT LICENSE applies only to original wrapper work. Upstream components keep their own copyright and licenses. Preserve this file and `licenses/` alongside binary/source distributions.
 
 | Component | Use / license notice |
 |---|---|
@@ -13,6 +13,6 @@ The root MIT LICENSE applies only to original tasm2_nx work. Upstream components
 | [jsmn](https://github.com/zserge/jsmn) | Vendored original parser header `source/thirdparty/jsmn.h`. MIT; [notice](licenses/jsmn.txt). |
 | newlib and SDK runtime support | Statically linked C runtime; multiple permissive notices retained in [COPYING.NEWLIB](licenses/newlib.txt). GCC support libraries are covered by [GPLv3](licenses/gcc-gpl3.txt) with the [GCC Runtime Library Exception](licenses/gcc-runtime-exception.txt); the exception applies to eligible compiled runtime code, not to unrelated GPL sources. |
 
-Build-only tools include devkitPro's compiler/switch tools and Docker container toolchains. They are not shipped as executables in this release. Reference-only NextOS/Vita/Total Mayhem/Sonic implementation code is not linked; its inspection is documented in [REFERENCE_AUDIT.md](REFERENCE_AUDIT.md). Original binary-derived ABI facts and guarded instruction values describe compatibility; no original game native library or gameplay data is included.
+Build-only tools include devkitPro's compiler/switch tools and Docker container toolchains. They are not shipped as executables in this release. See [REFERENCE_AUDIT.md](REFERENCE_AUDIT.md) for the materials inspected in this project. Original binary-derived ABI facts and guarded instruction values describe compatibility; no original game native library or gameplay data is included.
 
-The launcher icon (`launcher/icon.jpg`) is derived from the user-supplied `The-Amazing-Spider-Man-2-APK.png` artwork, converted to a 256 × 256 baseline JPEG for NRO metadata. The original game artwork and trademarks belong to their respective rights holders; this image is not licensed under the MIT license for original port code. It identifies the compatible game and does not convey endorsement.
+The launcher artwork (`launcher/icon.jpg` and `frontend/assets/icon.jpg`) is derived from the user-provided Shadow Guardian image. Original game imagery and trademarks belong to their respective rights holders and are not covered by the source code license. No endorsement is implied.
