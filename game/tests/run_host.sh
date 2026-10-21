@@ -16,4 +16,6 @@ build/host/gl_test
 build/host/audio_test
 "$cc" "${common[@]}" "${sanitize[@]}" game/source/sg_swp.c game/tests/swp_test.c -o build/host/swp_test
 build/host/swp_test
+"$cc" "${common[@]}" "${sanitize[@]}" game/source/sg_input.c game/tests/input_test.c -o build/host/input_test
+build/host/input_test
 python3 runtime/tools/gen_imports.py --port game --check

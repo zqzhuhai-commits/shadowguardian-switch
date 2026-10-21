@@ -26,7 +26,7 @@ static void device(void *e,void *cls){assert(e==env&&cls==&classes[2]);assert(++
 static void renderer(void *e,void *cls,int profile,int w,int h,int lang){assert(e==env&&cls==&classes[3]&&profile==4&&w==800&&h==480&&lang==0);assert(++step==5);}
 static void game(void *e,void *cls){assert(e==env&&cls==&classes[0]);assert(++step==6);}
 static void resize(void *e,void *cls,int w,int h){assert(e==env&&cls==&classes[3]&&w==800&&h==480);assert(++step==7);}
-static uintptr_t missing(void *module,const char *s){(void)module;assert(!strncmp(s,"Java_com_gameloft_android_ANMP_GloftSGHP_ML_",41)||!strcmp(s,"JNI_OnLoad"));return 0;}
+static uintptr_t missing(void *module,const char *s){(void)module;assert(!strncmp(s,"Java_com_gameloft_android_ANMP_GloftSGHP_ML_",41)||!strcmp(s,"JNI_OnLoad")||!strcmp(s,"_ZN8GUILevel14s_isGUIVisibleE"));return 0;}
 int main(void){
  SgApi a={.on_load=onload,.get_info=info,.resources_init=res,.device_init=device,.renderer_init=renderer,.game_init=game,.resize=resize};
  assert(sg_bootstrap(&a,vm,env,str,clazz,800,480,0,NULL)==0);assert(step==7&&strings==7);
@@ -36,6 +36,6 @@ int main(void){
  fail_class=1;assert(sg_bootstrap(&a,vm,env,str,clazz,800,480,0,NULL)==-5&&step==0);
  fail_class=0;
  a.renderer_init=NULL;assert(sg_bootstrap(&a,vm,env,str,clazz,800,480,0,NULL)==-2&&step==0);
- assert(sg_bind(NULL,missing,NULL,NULL)==-1);assert(sg_bind(&a,missing,NULL,NULL)==14);
+ assert(sg_bind(NULL,missing,NULL,NULL)==-1);assert(sg_bind(&a,missing,NULL,NULL)==15);
  puts("PASS: exact lifecycle order, JNI string identities, dimensions/profile, bad VM version, allocation failure, missing exports");
 }

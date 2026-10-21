@@ -30,6 +30,7 @@ int sg_bind(SgApi *api, sg_lookup lookup, void *module, sg_log log) {
     BIND(touch, SG_PREFIX "GameGLSurfaceView_nativeOnTouch");
     BIND(key_down, SG_PREFIX "ShadowGuardian_nativeOnKeyDown");
     BIND(key_up, SG_PREFIX "ShadowGuardian_nativeOnKeyUp");
+    BIND(gui_visible, "_ZN8GUILevel14s_isGUIVisibleE");
 #undef BIND
     return missing;
 }

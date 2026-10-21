@@ -127,7 +127,7 @@ void port_focus_lost(void){if(running){sg_input_release();sg_audio_pause(1);sg_a
 void port_focus_gained(void){if(running){sg_api.resume(g_jni_env,NULL);sg_audio_pause(0);stage("native resumed");}}
 static int run_game(void){
  stage("initialize JNI object model");jni_init();
- extern int g_so_trace_ctors;g_so_trace_ctors=1;
+ extern int g_so_trace_ctors;g_so_trace_ctors=0;
  stage("execute native constructors");so_execute_init_array(&module);so_free_temp(&module);
  if(graphics()){stage("EGL creation/presentation failed");return -1;}
  debugPrintf("[sg/display] output=%dx%d fullscreen; native asset coordinates=%dx%d\n",SG_OUTPUT_WIDTH,SG_OUTPUT_HEIGHT,SG_WIDTH,SG_HEIGHT);
@@ -152,26 +152,10 @@ static int run_game(void){
 }
 int main(int argc,char **argv){
  (void)argc;(void)argv;const char *root=dcr_game_root();mkdir(root,0777);
- log_init(root);log_console_open();log_console_show_text();
- debugPrintf("Shadow Guardian runtime 0.2.1 / BOOT TEST / gameplay unverified\n");
- dcr_report_boot();if(chdir(root))debugPrintf("[sg] root chdir failed\n");
+ log_init(root);log_console_open();
+ if(chdir(root))return 1;
  dcr_config_load();dcr_time_init();dcr_path_prepare_dirs();
- debugPrintf("A: attempt original game initialization. PLUS: exit.\n");log_flush_ring();
- padConfigureInput(1,HidNpadStyleSet_NpadStandard);PadState pad;padInitializeDefault(&pad);
- int start=0;while(appletMainLoop()){
-  padUpdate(&pad);u64 down=padGetButtonsDown(&pad);
-  if(down&HidNpadButton_Plus)break;
-  if(down&HidNpadButton_A){start=1;break;}
-  log_console_update();svcSleepThread(16000000);
- }
- if(!start)return 0;
  if(load_game()==0){dcr_sched_init();rt_applet_start();if(run_game()==0){log_flush_ring();return 0;}}
- stage("boot stopped; see debug.log / crash.log");
- /* EGL may own the window; avoid reopening a console over an active surface. */
- while(appletMainLoop()){
-  padUpdate(&pad);if(padGetButtonsDown(&pad)&HidNpadButton_Plus)break;
-  if(!display)log_console_update();
-  svcSleepThread(16000000);
- }
+ /* No interactive boot gate or diagnostic screen in normal launches. */
  log_flush_ring();return 1;
 }
